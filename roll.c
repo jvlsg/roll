@@ -46,14 +46,47 @@ parses rolls and calls the roll_dice function
 */ 
     
     uint64_t  num_rolls, die_type, modifiers, target_num;
-    //Break string, get num_rolls
-    char *curr_token;
-    curr_token = strtok(roll,TOKEN_DIE);
-    printf("%s",curr_token);    
+    //Break string at 'd' charcter, get num_rolls
+    char *aux_token = strtok(roll,TOKEN_DIE);
     
-    //convert to integer
+    //convert to integer - err returns 0
+    num_rolls = strtoll(aux_token,NULL , 10);
+    printf("N rolls %lld\n", num_rolls);
+    
+    if (num_rolls == 0)
+        return;
         
+    aux_token = strtok(NULL,TOKEN_DIE);
+    if(aux_token==NULL) //ERROR HANDLING - NO DIE
+        return;
+    die_type = strtoll(aux_token, NULL, 10);
+    if(die_type == 0) //ERROR - INVALID INPUT
+        return;
+
+    printf("die d%lld\n", die_type);
     
+    //PARSE MODIFIERS & TN
+    printf("AFTER 'd' %s\n",aux_token);
+    aux_token = strtok(aux_token,"+-");
+    while (aux_token != NULL){
+        printf(">>%s\n",aux_token);
+        aux_token = strtok(NULL,"+-");
+    }
+
+    /*
+    ver  strrchr - talvez fazer 1 pra cada "+" e "-"
+
+    Opcao de desespero - fazer forzao do que restar
+    ignorar ate encontrar + ou -
+
+    while(! NULL ) {
+        verifica se char e +,- ou #
+        switch case
+        
+        se for 1 dos 3 vai pegando ate formar um numero, coloca no TN ou no sum de modifiers
+    
+    }   
+    */
 
     return;
 }
