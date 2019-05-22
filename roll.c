@@ -4,6 +4,8 @@
 #include<unistd.h>
 #include<string.h>
 #include<stdbool.h>
+
+
 /*
 roll - A simple diceroller for RPG and CLI enthusiasts
 
@@ -23,33 +25,73 @@ roll xdy+a-b    rolls a dy x times and sums their results, modifies final sum wi
     [2->1, 3->2, 4->3]
     
     
-roll xdy>z   rolls a dy x times and returning success if results are Greater or Equal than a Target Number
-    $: roll 2d10>15 3d4>3 1d123>1409
+roll xdy#z   rolls a dy x times and returning success if results are Greater or Equal than a Target Number
+    $: roll 2d10#15 3d4#3 1d123#1409
     [13 - Failed] [6 - Success] [88 - Invalid TN]
     
-    $: roll -p 3d6+2-3>3
+    $: roll -p 3d6+2-3#3
     [2->1, 3->2, 4->3 - 1 Success]
     
-    $: roll -p 3d6+2-3>2000
+    $: roll -p 3d6+2-3#2000
     [2->1, 3->2, 4->3 - 0 Success]
+
+roll xdy -t z   Sets a global target number of Z
+    $: roll -t 5 -p 3d6
+    [2, 3, 4 - 0 Success]
 */
 bool DICE_POOL_MODE = false;
+uint64_t GLOBAL_TARGET_NUM = 0;
 char* TOKEN_DIE = "d";
-void parse_roll( char *roll ){
-/*
-parses rolls and calls the roll_dice function
->Detect number of rolls and ice types
-    |-> xdy is *must* be followed
->Detect modifiers
->Detect target Number
 
-*/ 
+
+
+void parse_modifiers(char * str, uint64_t *mod_inc, uint64_t *mod_dec, uint64_t *target_num){
+    //printf("to parse %s\n", str);
+    uint64_t aux = 0;
+
+    for (uint32_t i = 0; str[i] != '\0'; i++){
+        printf("> %c\n", str[i] );
+        switch (str[i]){
+            case '+':
+                aux = strtoll( str+i ,NULL,10);
+                //printf("\t+%d\n",aux);
+                *mod_inc+=aux;
+                break;
+            case '-':
+                aux = strtoll( str+i ,NULL,10);
+                //printf("\t-%d\n",aux);
+                *mod_dec+=aux;
+                break;
+            case '#':
+                aux = strtoll( str+i+1 ,NULL,10);
+                //printf("\ttn %d\n",aux);
+                *target_num=aux;
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+/*
+    Parses each roll, calls roll_dice function with proper arguments
+*/
+void parse_roll( char *roll ){
     
-    uint64_t  num_rolls, die_type, modifiers, target_num;
+    uint64_t  num_rolls=0, die_type=0, mod_inc=0, mod_dec=0, target_num=0;
+
     //Break string at 'd' charcter, get num_rolls
-    char *aux_token = strtok(roll,TOKEN_DIE);
-    
-    //convert to integer - err returns 0
+    char *aux_token = strtok(roll,TOKEN_DIE);    
+    /*
+    strtoll - (
+            const char *nptr, 
+            char **endptr: to indicate where the conversion stopped. 
+                    Can be NULL -> convert till ya can`t, 
+            int base: Octal, Decimal
+            )
+
+    convert to integer - err returns 0
+    */
     num_rolls = strtoll(aux_token,NULL , 10);
     printf("N rolls %lld\n", num_rolls);
     
@@ -64,37 +106,25 @@ parses rolls and calls the roll_dice function
         return;
 
     printf("die d%lld\n", die_type);
+
+
+    //All after 'd' -> PARSE MODIFIERS & TN
+    printf("%d\t%d\t%d\n",mod_inc,mod_dec,target_num);
+    parse_modifiers(aux_token, &mod_inc, &mod_dec, &target_num);   
+    printf("%d\t%d\t%d\n",mod_inc,mod_dec,target_num);
     
-    //PARSE MODIFIERS & TN
-    printf("AFTER 'd' %s\n",aux_token);
-    aux_token = strtok(aux_token,"+-");
-    while (aux_token != NULL){
-        printf(">>%s\n",aux_token);
-        aux_token = strtok(NULL,"+-");
-    }
+    if(GLOBAL_TARGET_NUM > 0)
+        target_num = GLOBAL_TARGET_NUM;
 
-    /*
-    ver  strrchr - talvez fazer 1 pra cada "+" e "-"
-
-    Opcao de desespero - fazer forzao do que restar
-    ignorar ate encontrar + ou -
-
-    while(! NULL ) {
-        verifica se char e +,- ou #
-        switch case
-        
-        se for 1 dos 3 vai pegando ate formar um numero, coloca no TN ou no sum de modifiers
+   // roll_dice(num_rolls,die_type,mod_inc,mod_dec,target_num);
     
-    }   
-    */
-
     return;
 }
 
 
 
-
-void roll_dice(){
+void roll_dice(uint64_t num_rolls, uint64_t die_type, uint64_t mod_inc, uint64_t mod_dec, uint64_t target_num){
+    
 //actually runs randm
 }
 
@@ -105,8 +135,11 @@ int main(int argc, char **argv){
     while( (c = getopt(argc, argv, "ph")) != -1  ){ 
         switch(c){
             case 'p':
-                printf("menos p");
+                printf("Dice Pool mode\n");
                 DICE_POOL_MODE = true;
+                break;
+            case 't':
+                printf("Global Target Number\n");
                 break;
             case 'h':
                 printf("menos aga");
