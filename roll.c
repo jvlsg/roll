@@ -4,7 +4,8 @@
 #include<unistd.h>
 #include<string.h>
 #include<stdbool.h>
-#include<sys/time.h>
+#include<time.h>
+
 /*
 roll - A simple diceroller for RPG and CLI enthusiasts
 
@@ -43,6 +44,9 @@ int64_t GLOBAL_TARGET_NUM = 0;
 char* TOKEN_DIE = "d";
 
 
+/*
+Parse a string for modifiers: Increment, Decrement and target nubmers
+*/
 void parse_modifiers(char * str, int64_t *mod_inc, int64_t *mod_dec, int64_t *target_num){
     //printf("to parse %s\n", str);
     int64_t aux = 0;
@@ -57,7 +61,7 @@ void parse_modifiers(char * str, int64_t *mod_inc, int64_t *mod_dec, int64_t *ta
             case '-':
                 aux = strtoull( str+i ,NULL,10);
                 //printf("\tdec %lld\n",aux);
-                *mod_dec+=aux;
+                *mod_dec-=aux;
                 break;
             case '#':
                 aux = strtoull( str+i+1 ,NULL,10);
@@ -70,13 +74,26 @@ void parse_modifiers(char * str, int64_t *mod_inc, int64_t *mod_dec, int64_t *ta
     }
 }
 
+/*return random integer in a range of [min,max]
+Thanks to the fine folks at yale
+http://www.cs.yale.edu/homes/aspnes/pinewiki/C(2f)Randomization.html
+*/
+int64_t random_in_range(int64_t min, int64_t max){
+    int64_t r = 0;
+    //
+    int64_t limit = RAND_MAX - (RAND_MAX % max);
+    while ( (r = rand() ) >= limit );
+    return (r % max)+1;
+}
+
+/*
+    Rolls dice given a die type, number of rolls, increment and decrement    
+    
+    Also checks for DICE_POOL_MODE
+*/
 void roll_dice(int64_t num_rolls, int64_t die_type, int64_t mod_inc, int64_t mod_dec, int64_t target_num){
- 
-    struct timeval tv;
-
-    gettimeofday(&tv, NULL);
-
-   
+    
+    srand(time(0));
     int64_t roll_sum = 0;
     int64_t success_count = 0;
     bool has_tn = (target_num > 0) ? true : false;
@@ -84,35 +101,46 @@ void roll_dice(int64_t num_rolls, int64_t die_type, int64_t mod_inc, int64_t mod
     
     printf("\n[");
     
-    unsigned long long millisecondsSinceEpoch =  (unsigned long long)(tv.tv_sec) * 1000 +
-    (unsigned long long)(tv.tv_usec) / 1000;
-    srand(millisecondsSinceEpoch);
+    
+    if(DICE_POOL_MODE){
+        for(int64_t i = 0; i<num_rolls; i++){
+            roll_sum += random_in_range(1,die_type); 
+            printf("%lld", roll_sum);
 
-    for(int64_t i = 0; i<num_rolls; i++){
-        //roll_sum += random_at_most(die_type); //ROLL THE FUCKING DICE;
-        printf("%lld", roll_sum); 
-        
-        if(has_mod){
             roll_sum +=  mod_inc - mod_dec; 
-            printf("+%lld %lld ->%lld ",mod_inc, mod_dec, roll_sum);
-        }
+            if(has_mod)
+                printf("+%lld-%lld=%lld",mod_inc, mod_dec, roll_sum);
 
-        if (DICE_POOL_MODE){
             if (roll_sum >= target_num)
                 success_count++;
             roll_sum = 0;
-        }
-    }
     
-    //SUCCES OR FAIL ?
-    if (has_tn){
-        if(DICE_POOL_MODE){
-            printf("%lld Successes", success_count);
-            return;
+            if(i+1<num_rolls)
+                printf(","); 
         }
-        (roll_sum >= target_num) ? printf("Success") : printf("Fail");
+        if(has_tn)
+            printf("  %lld Successes", success_count);
+
+        printf("]\n");
     }
-    printf("]\n");
+
+    else{
+        for(int64_t i = 0; i<num_rolls; i++){
+            roll_sum += random_in_range(1,die_type); 
+        }
+
+        printf("%lld", roll_sum);
+        
+        if(has_mod){
+            roll_sum +=  mod_inc - mod_dec; 
+            printf("+%lld-%lld = %lld",mod_inc, mod_dec, roll_sum);
+        }
+        if(has_tn) 
+            (roll_sum >= target_num) ? printf(" Success") : printf(" Fail");
+        
+        printf("]\n");
+    }
+    return;
 }
 
 
