@@ -7,65 +7,61 @@
 #include<time.h>
 
 /*
-roll - A simple diceroller for RPG and CLI enthusiasts
-
-roll xdy    rolls a dy x times and sums their results
-    $: roll 2d10 3d4 1d123
-    [13] [6] [88]
-
-roll -p xdy     rolls xdy as a dice pool, gives individual results for each die
-    $: roll -p 2d10 3d4 1d123
-    [5,8] [4,2] [88]
-    
-roll xdy+a-b    rolls a dy x times and sums their results, modifies final sum with modifiers    
-    $: roll 1d20+4-6 3d6-20+3
-    [12 -> 10] [9 -> -8]
-    
-    $: roll -p 3d6+2-3
-    [2->1, 3->2, 4->3]
-    
-    
-roll xdy#z   rolls a dy x times and returning success if results are Greater or Equal than a Target Number
-    $: roll 2d10#15 3d4#3 1d123#1409
-    [13 - Failed] [6 - Success] [88 - Invalid TN]
-    
-        $: roll -p 3d6+2-3#3
-    [2->1, 3->2, 4->3 - 1 Success]
-    
-    $: roll -p 3d6+2-3#2000
-    [2->1, 3->2, 4->3 - 0 Success]
-
-roll xdy -t z   Sets a global target number of Z
-    $: roll -t 5 -p 3d6
-    [2, 3, 4 - 0 Success]
+    roll - A simple Diceroller in C for RPG and CLI enthusiasts
+    by João Victor Guimarães (jvlsg)
 */
+
 bool DICE_POOL_MODE = false;
-int64_t GLOBAL_TARGET_NUM = 0;
+bool VERBOSE_MODE = false; 
+int64_t DEFAULT_TARGET_NUM = 0;
 char* TOKEN_DIE = "d";
 
+char* VERSION_STR="v1.0\n";
+char* HELP_STR = 
+"\nUsage\n"
+"roll [options] XdY[+A-B#Z] ...\n"
+"Where:\n" 
+"\tX is Number of Rolls\n"
+"\tY is the type of die\n" 
+"\tA and B are optional increments and decrements, respectively\n" 
+"\tZ is a Target Number. A roll will be successful if Result >= TN \n"
+"\nIt is possible to make several rolls and use several modifiers to each roll.\n"
+
+"\nOPTIONS\n"
+"\t-p\tDice Pool mode: Each die of a roll is independent of the others\n"
+"\t-v\tVerbose mode\n"
+"\t-t<NUM>\tDefault Target Number: All rolls will be compared against it.\n"
+"\t\tAn explicit target number declaration will be used instead for that roll."
+"\t-V\tPrints out the program's version\n"
+
+"\nEXAMPLES\n"
+"\troll 1d20+2-4#14 2d8#4\n"
+"\troll -p 6d6#5\n"
+"\n";
 
 /*
-Parse a string for modifiers: Increment, Decrement and target nubmers
+Parse a string for modifiers: Increment, Decrement and target numbers.
+Ignores trash input by default.
+
+@str            String including the modifiers to be parsed
+@mod_inc        Reference to store Increment modifier
+@mod_dec        Reference to store Decrement modifier
+@target_num     Reference to store Target Number
 */
 void parse_modifiers(char * str, int64_t *mod_inc, int64_t *mod_dec, int64_t *target_num){
-    //printf("to parse %s\n", str);
     int64_t aux = 0;
-
     for (uint32_t i = 0; str[i] != '\0'; i++){
         switch (str[i]){
             case '+':
-                aux = strtoull( str+i ,NULL,10);
-                //printf("\tinc %lld\n",aux);
+                aux = strtoll( str+i ,NULL,10);
                 *mod_inc+=aux;
                 break;
             case '-':
-                aux = strtoull( str+i ,NULL,10);
-                //printf("\tdec %lld\n",aux);
+                aux = strtoll( str+i ,NULL,10);
                 *mod_dec-=aux;
                 break;
             case '#':
-                aux = strtoull( str+i+1 ,NULL,10);
-                //printf("\ttn %d\n",aux);
+                aux = strtoll( str+i+1 ,NULL,10);
                 *target_num=aux;
                 break;
             default:
@@ -74,9 +70,16 @@ void parse_modifiers(char * str, int64_t *mod_inc, int64_t *mod_dec, int64_t *ta
     }
 }
 
-/*return random integer in a range of [min,max]
+/*
+return random integer in a range of [min,max]
+
 Thanks to the fine folks at yale
 http://www.cs.yale.edu/homes/aspnes/pinewiki/C(2f)Randomization.html
+
+@min    Lower boundry of the range - inclusive
+@max    Upper boundry of the range - inclusive
+
+@return Random number in the boundry
 */
 int64_t random_in_range(int64_t min, int64_t max){
     int64_t r = 0;
@@ -87,9 +90,39 @@ int64_t random_in_range(int64_t min, int64_t max){
 }
 
 /*
-    Rolls dice given a die type, number of rolls, increment and decrement    
+Applies modifiers and prints them according to the verbosity level
+@mod_inc        Increment modifier
+@mod_dec        Decrement modifier
+@roll_sum       Reference to the overall sum of the roll
+*/
+void apply_modifiers(int64_t mod_inc, int64_t mod_dec, int64_t *roll_sum){
     
-    Also checks for DICE_POOL_MODE
+    *(roll_sum) +=  mod_inc - mod_dec; 
+    
+    if(VERBOSE_MODE)
+        printf("+%lld-%lld=%lld",mod_inc, mod_dec, *(roll_sum) );
+    else
+        printf(" -> %lld", *(roll_sum));
+    return;
+}
+
+
+/*
+Rolls dice given a die type, number of rolls, increment and decrement   
+
+If in DICE_POOL_MODE, all dice are treated independently and each have their
+roll result modified by the mod_* variables, and compared to the target number
+if the TN is different than 0
+
+If not in the DICE_POOL_MODE, all
+rolls have their results summed and ONLY the final result is modified by mod_*
+and compared to the target number, if the TN is different than 0.
+
+@num_rolls      Number of rolls, or loop iterations to run
+@die_type       Upper boundry of the random range
+@mod_inc        Increment modifier
+@mod_dec        Decrement modifier
+@target_num     Target Number
 */
 void roll_dice(int64_t num_rolls, int64_t die_type, int64_t mod_inc, int64_t mod_dec, int64_t target_num){
     
@@ -99,53 +132,64 @@ void roll_dice(int64_t num_rolls, int64_t die_type, int64_t mod_inc, int64_t mod
     bool has_tn = (target_num > 0) ? true : false;
     bool has_mod = (mod_inc > 0 || mod_dec >0) ? true : false;
     
-    printf("\n[");
+    printf("[");
     
     
     if(DICE_POOL_MODE){
+
         for(int64_t i = 0; i<num_rolls; i++){
             roll_sum += random_in_range(1,die_type); 
             printf("%lld", roll_sum);
 
-            roll_sum +=  mod_inc - mod_dec; 
             if(has_mod)
-                printf("+%lld-%lld=%lld",mod_inc, mod_dec, roll_sum);
+                apply_modifiers(mod_inc, mod_dec, &roll_sum);
 
             if (roll_sum >= target_num)
                 success_count++;
-            roll_sum = 0;
-    
+
             if(i+1<num_rolls)
-                printf(","); 
+                printf(" , "); 
+
+            roll_sum = 0;
         }
         if(has_tn)
             printf("  %lld Successes", success_count);
-
-        printf("]\n");
     }
 
     else{
-        for(int64_t i = 0; i<num_rolls; i++){
+        for(int64_t i = 0; i<num_rolls; i++)
             roll_sum += random_in_range(1,die_type); 
-        }
 
         printf("%lld", roll_sum);
-        
-        if(has_mod){
-            roll_sum +=  mod_inc - mod_dec; 
-            printf("+%lld-%lld = %lld",mod_inc, mod_dec, roll_sum);
-        }
+        if(has_mod)
+            apply_modifiers(mod_inc,mod_dec, &roll_sum);
         if(has_tn) 
             (roll_sum >= target_num) ? printf(" Success") : printf(" Fail");
-        
-        printf("]\n");
     }
+    
+    printf("]\t");
+    if(VERBOSE_MODE)
+        printf("\n");
+    
     return;
 }
 
 
 /*
-    Parses each roll, calls roll_dice function with proper arguments
+Parses a single 'roll', calls roll_dice function with proper arguments
+
+The roll is expected to be in the form of 'xdy+a-b#z' where x,y,z,a,b are ints
+Using strtoll it ignores any non numerical input
+
+"strtoull - (
+        const char *nptr, 
+        char **endptr: to indicate where the conversion stopped. 
+                Can be NULL -> convert till ya can`t, 
+        int base: Octal, Decimal
+        )
+convert to integer - err returns 0"
+
+@roll   String containing the roll
 */
 void parse_roll( char *roll ){
     
@@ -155,18 +199,7 @@ void parse_roll( char *roll ){
     char *aux_token = strtok(roll,TOKEN_DIE);    
     if(aux_token==NULL ) //ERROR HANDLING - NO NUM ROLLS
         return;
-    /*
-    strtoull - (
-            const char *nptr, 
-            char **endptr: to indicate where the conversion stopped. 
-                    Can be NULL -> convert till ya can`t, 
-            int base: Octal, Decimal
-            )
-
-    convert to integer - err returns 0
-    */
-    num_rolls = strtoull(aux_token,NULL , 10);
-    printf("#rolls %lld\t",num_rolls); 
+    num_rolls = strtoll(aux_token,NULL , 10);
     if (num_rolls == 0)
         return;
         
@@ -174,21 +207,20 @@ void parse_roll( char *roll ){
     if(aux_token==NULL ) //ERROR HANDLING - NO DIE
         return;
     
-    die_type = strtoull(aux_token, NULL, 10);
+    die_type = strtoll(aux_token, NULL, 10);
     if(die_type <= 0) //ERROR - INVALID INPUT
         return;
 
-    printf("die type %lld\t",die_type); 
-    
     //All after 'd' -> PARSE MODIFIERS & TN
     parse_modifiers(aux_token, &mod_inc, &mod_dec, &target_num);   
-    printf("inc %d\t dec %d\t tn %d\n",mod_inc,mod_dec,target_num);
     
-    if(GLOBAL_TARGET_NUM > 0)
-        target_num = GLOBAL_TARGET_NUM;
+    if(target_num <= 0)
+        target_num = DEFAULT_TARGET_NUM;
 
-    roll_dice(num_rolls,die_type,mod_inc,mod_dec,target_num);
+    if(VERBOSE_MODE)
+        printf("#rolls %lld \td%lld\tinc %d\t dec %d\t tn %d\n",num_rolls,die_type,mod_inc,mod_dec,target_num);
     
+    roll_dice(num_rolls,die_type,mod_inc,mod_dec,target_num);
     return;
 }
 
@@ -196,17 +228,25 @@ int main(int argc, char **argv){
     int c;
 
     //Parse Options 
-    while( (c = getopt(argc, argv, "ph")) != -1  ){ 
+    while( (c = getopt(argc, argv, "pVvt:h")) != -1  ){ 
         switch(c){
             case 'p':
-                printf("Dice Pool mode\n");
                 DICE_POOL_MODE = true;
                 break;
+            case 'v':
+                VERBOSE_MODE = true;
+                break;
             case 't':
-                printf("Global Target Number\n");
+                DEFAULT_TARGET_NUM = strtoll(optarg,NULL,10);
+                if(VERBOSE_MODE)
+                    printf("Default Target Number %lld\n",DEFAULT_TARGET_NUM);
                 break;
             case 'h':
-                printf("menos aga");
+                printf(HELP_STR);
+                return EXIT_SUCCESS;
+            case 'V':
+                printf(VERSION_STR);
+                return EXIT_SUCCESS;
             default:
                 printf("%c\n",c);
                 break;
@@ -217,5 +257,7 @@ int main(int argc, char **argv){
     for(int i=optind; i < argc; i++){
         parse_roll(argv[i]);
     }
+    if (!VERBOSE_MODE)
+        printf("\n");
     return EXIT_SUCCESS;
 }
