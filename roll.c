@@ -37,6 +37,8 @@ char* HELP_STR =
 "\nEXAMPLES\n"
 "\troll 1d20+2-4#14 2d8#4\n"
 "\troll -p 6d6#5\n"
+
+"\nAUTHOR:\tJoão Victor Guimarães\nBugs and feedback should be sent to https://github.com/jvlsg/roll"
 "\n";
 
 /*
