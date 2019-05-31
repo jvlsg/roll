@@ -2,14 +2,27 @@
 A simple Diceroller in C for RPG and CLI enthusiasts
 by João Victor Guimarães
 
+## (UN)INSTALLING
+* Clone the repo / download
+* Run the install/uninstall scripts (Asuming `gcc` as compiler in the makefile)
+    * You might need to add execution permissions: `chmod +x install.sh`
+* The binary will be placed in /usr/local/bin/ as `roll`
+* TODO: Actually make a neat release package... the scripts will do for now.
+
 ## USAGE
 `roll [options] XdY[+A-B#Z] ...`
 Where:
+
 `X` is Number of Rolls
+
 `Y` is the type of die
+
 `A` and B are optional increments and decrements, respectively
+
 `Z` is a Target Number. A roll will be successful if Result >= TN
 It is possible to make several rolls and use several modifiers to each roll.
+
+Please note that roll fails quietly - Incorrect input will simply be ignored. 
 
 ## OPTIONS
 `-p`		Dice Pool mode: Each die of a roll is independent of the others
@@ -46,16 +59,16 @@ rolls a dy x times and sums their results, modifies final sum with modifiers
 rolls a dy x times and returning success if results are Greater or Equal than a Target Number
     
     $: roll 2d10#15 3d4#3 1d123#1409
-    [13 - Fail] [6 - Success] [88 - Fail]
+    [13 | Fail] [6 | Success] [88 | Fail]
     
     $: roll -p 3d6+2-3#3
-    [2->1, 3->2, 4->3 - 1 Success]
+    [2->1, 3->2, 4->3 | 1 Successes]
     
     $: roll -p 3d6+2-3#2000
-    [2->1, 3->2, 4->3 - 0 Success]
+    [2->1, 3->2, 4->3 | 0 Successes]
 
 ### `roll xdy -t z`   
 Sets a default target number of Z
     
     $: roll -t 5 -p 3d6 2d6#1
-    [2, 3, 4 - 0 Successes, 1,3,2 - 3 Successes]
+    [2, 3, 4 - 0 Successes, 1,3,2 | 3 Successes]
