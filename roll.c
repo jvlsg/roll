@@ -17,7 +17,7 @@ bool VERBOSE_MODE = false;
 int64_t DEFAULT_TARGET_NUM = 0;
 char* TOKEN_DIE = "d";
 
-char* VERSION_STR="v1.0\n";
+char* VERSION_STR="v1.0.1\n";
 char* HELP_STR = 
 "\nUSAGE\n"
 "roll [options] XdY[+A-B#Z] ...\n"

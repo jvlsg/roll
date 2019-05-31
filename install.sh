@@ -14,5 +14,5 @@ if [ "$EUID" -ne 0 ]
   then echo "[*] Requiring sudo to move Binary"
   SUDO='sudo'
 fi
-$SUDO mv roll.o $INSTALL_PATH 
+$SUDO mv roll $INSTALL_PATH 
 echo "[*] ...Done"

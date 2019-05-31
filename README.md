@@ -75,3 +75,25 @@ Sets a default target number of Z
     
     $: roll -t 5 -p 3d6 2d6#1
     [2, 3, 4 | 0 Successes, 1,3,2 | 3 Successes]
+
+## Regarding the Randomness;
+As suggested in a [post by Yale Professor James
+Aspnes](http://www.cs.yale.edu/homes/aspnes/pinewiki/C(2f)Randomization.html)  `roll` uses the time from epoch in
+seconds as a seed for the standard `rand()` C function. Although the argument can be made that this method is not
+truly random or cryptographically insecure, it (as far as my research went) proved to be the most portable, using
+native C libraries instead of any external depencies, as well as being sufficiently random for the use case of tabletop
+gaming. 
+
+That being said, I am quite aware that players might take issue in using a non-truly random, not-cryptographically
+secure, non "atmosphere-noise or nuclear decay" based algorithm instead of cheap and probably unbalanced plastic dice.
+So here is the official warning: __running `roll` several times in quick succesion will result in the same results__.
+
+Have fun!
+
+## Authors
+* **João Victor Guimarães** - [jvlsg](https://github.com/jvlsg/)
+
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
