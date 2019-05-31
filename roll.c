@@ -19,7 +19,7 @@ char* TOKEN_DIE = "d";
 
 char* VERSION_STR="v1.0\n";
 char* HELP_STR = 
-"\nUsage\n"
+"\nUSAGE\n"
 "roll [options] XdY[+A-B#Z] ...\n"
 "\tX is Number of Rolls\n"
 "\tY is the type of die\n" 
