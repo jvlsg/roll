@@ -26,9 +26,12 @@ Please note that roll fails quietly - Incorrect input will simply be ignored.
 
 ## OPTIONS
 `-p`		Dice Pool mode: Each die of a roll is independent of the others
+
 `-v`		Verbose mode
+
 `-t<NUM>`	Default Target Number: All rolls will be compared against it.
 		An explicit target number declaration will be used instead for that roll.
+		
 `-V`		Prints out the program's version\n"
 
 
