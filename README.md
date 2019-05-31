@@ -71,4 +71,4 @@ rolls a dy x times and returning success if results are Greater or Equal than a 
 Sets a default target number of Z
     
     $: roll -t 5 -p 3d6 2d6#1
-    [2, 3, 4 - 0 Successes, 1,3,2 | 3 Successes]
+    [2, 3, 4 | 0 Successes, 1,3,2 | 3 Successes]
